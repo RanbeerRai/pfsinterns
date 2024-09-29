@@ -1,34 +1,73 @@
+# Import necessary libraries for data manipulation, model building, and evaluation
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# File path to the dataset
-file_location = "/full/path/to/heart_disease_uci.csv"
-data = pd.read_csv(file_location)
+# Define the file path where the dataset is stored
+file_path = "/full/path/to/heart_disease_uci.csv"
 
-# Remove unnecessary columns
-cleaned_data = data.drop(columns=['ca', 'thal', 'slope'])
+# Read the CSV file into a pandas DataFrame
+heart_data = pd.read_csv(file_path)
 
-# Handle missing values
-numeric_columns = ['trestbps', 'chol', 'thalach', 'oldpeak']
-cleaned_data[numeric_columns] = cleaned_data[numeric_columns].fillna(cleaned_data[numeric_columns].mean())
+# Drop specific columns that may not be needed for the analysis
+columns_to_drop = ['ca', 'thal', 'slope']
+data_cleaned = heart_data.drop(columns=columns_to_drop)
 
-categorical_columns = ['fbs', 'restecg', 'exang']
-cleaned_data[categorical_columns] = cleaned_data[categorical_columns].fillna(cleaned_data[categorical_columns].mode().iloc[0])
+# Define the list of numerical columns for handling missing values
+numerical_features = ['trestbps', 'chol', 'thalach', 'oldpeak']
 
-# Encode categorical features
-encoders = {}
-for feature in cleaned_data.select_dtypes(include=['object']).columns:
-    encoder = LabelEncoder()
-    cleaned_data[feature] = encoder.fit_transform(cleaned_data[feature])
-    encoders[feature] = encoder
+# Fill missing values in numerical columns with the mean of each respective column
+data_cleaned[numerical_features] = data_cleaned[numerical_features].fillna(data_cleaned[numerical_features].mean())
 
-# Remove additional columns not needed for model training
-X = cleaned_data.drop(columns=['num', 'id'])
-y = cleaned_data['num']
+# Define the list of categorical columns for handling missing values
+categorical_features = ['fbs', 'restecg', 'exang']
 
-# Split data into training and testing sets
-X_train
+# Fill missing values in categorical columns with the mode (most frequent value) of each column
+for col in categorical_features:
+    most_frequent_value = data_cleaned[col].mode()[0]
+    data_cleaned[col] = data_cleaned[col].fillna(most_frequent_value)
+
+# Initialize a dictionary to store the label encoders for each categorical feature
+label_encoders = {}
+
+# Loop through columns with categorical (object type) data and apply label encoding
+for column in data_cleaned.select_dtypes(include=['object']).columns:
+    encoder = LabelEncoder()  # Create an instance of LabelEncoder
+    # Fit the encoder on the column and transform the data
+    data_cleaned[column] = encoder.fit_transform(data_cleaned[column])
+    label_encoders[column] = encoder  # Store the encoder for future use or reference
+
+# Drop columns that are irrelevant for model training (e.g., identifiers like 'id' and the target variable 'num')
+X = data_cleaned.drop(columns=['num', 'id'])
+y = data_cleaned['num']  # Target variable is stored in 'num'
+
+# Split the data into training and testing sets using an 80-20 ratio
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create an instance of the RandomForestClassifier with 100 trees in the forest
+random_forest_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Train the RandomForestClassifier on the training data
+random_forest_classifier.fit(X_train, y_train)
+
+# Use the trained classifier to predict the outcomes on the test data
+y_predictions = random_forest_classifier.predict(X_test)
+
+# Evaluate the accuracy of the model by comparing predictions with the actual test labels
+model_accuracy = accuracy_score(y_test, y_predictions)
+
+# Generate a detailed classification report
+classification_rep = classification_report(y_test, y_predictions)
+
+# Generate a confusion matrix to visualize classification performance
+confusion_mat = confusion_matrix(y_test, y_predictions)
+
+# Print out the results of the model evaluation
+print(f"Model Accuracy: {model_accuracy}")
+print("Detailed Classification Report:")
+print(classification_rep)
+print("Confusion Matrix:")
+print(confusion_mat)
 
