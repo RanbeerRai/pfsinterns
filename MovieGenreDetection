@@ -1,0 +1,67 @@
+# Importing necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import MultiLabelBinarizer
+from nltk.corpus import stopwords
+import nltk
+
+# Download stopwords from NLTK
+nltk.download('stopwords')
+
+# Load movie data (ensure the dataset contains plot summaries and genre labels)
+data = pd.read_csv('movies_metadata.csv')
+
+# Data Preprocessing: Selecting the 'plot' and 'genres' columns
+data = data[['plot', 'genres']]
+
+# Drop rows with missing data
+data.dropna(inplace=True)
+
+# Define stopwords list
+stop_words = stopwords.words('english')
+
+# Function for cleaning and preprocessing plot summaries
+def preprocess_text(text):
+    # Convert to lowercase
+    text = text.lower()
+    # Remove non-alphanumeric characters (punctuation, etc.)
+    text = ''.join([char for char in text if char.isalnum() or char.isspace()])
+    # Remove stopwords
+    text = ' '.join([word for word in text.split() if word not in stop_words])
+    return text
+
+# Apply the preprocessing function to the 'plot' column
+data['cleaned_plot'] = data['plot'].apply(preprocess_text)
+
+# Convert genres to list (assume genres are comma-separated in the dataset)
+data['genres'] = data['genres'].apply(lambda x: x.split(','))
+
+# MultiLabelBinarizer: Convert genres to a binary format for multi-label classification
+mlb = MultiLabelBinarizer()
+y = mlb.fit_transform(data['genres'])
+
+# Feature Extraction: Use TF-IDF to vectorize the cleaned plot summaries
+tfidf_vectorizer = TfidfVectorizer(max_df=0.7, stop_words='english')
+X = tfidf_vectorizer.fit_transform(data['cleaned_plot'])
+
+# Train-Test Split: Split the data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a Multinomial Naive Bayes classifier
+classifier = MultinomialNB()
+classifier.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = classifier.predict(X_test)
+
+# Evaluate the model with accuracy score
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy:.4f}')
+
+# Generate and display a classification report
+report = classification_report(y_test, y_pred, target_names=mlb.classes_)
+print(f'Classification Report:\n{report}')
