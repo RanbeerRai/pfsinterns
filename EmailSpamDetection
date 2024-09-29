@@ -1,0 +1,51 @@
+# Importing necessary libraries for the task at hand
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import nltk
+
+# Downloading stopwords from nltk to filter irrelevant words
+nltk.download('stopwords')
+
+# Reading the dataset which contains messages and their labels (spam or not spam)
+data = pd.read_csv("C:/Users/Admin/anaconda3/Lib/__hello__/spam.py/spam.csv", encoding='ISO-8859-1')
+
+# Renaming columns to ensure we have clear, understandable names for our features and labels
+data = data[['v1', 'v2']] # Selects only the necessary columns
+data.columns = ['label', 'message'] # Renaming columns
+
+# Displaying the distribution of spam and non-spam labels
+print(data['label'].value_counts())
+
+# Splitting the dataset into training and testing subsets
+X_train, X_test, y_train, y_test = train_test_split(data['message'], data['label'], test_size=0.2, random_state=42)
+
+# Initializing a TfidfVectorizer, which converts the messages into TF-IDF features, ignoring common words
+tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_df=0.7)
+
+# Fitting the TF-IDF vectorizer on the training data and transforming both training and testing data
+X_train_tfidf = tfidf_vectorizer.fit_transform(X_train) # Fit and transform the training data
+X_test_tfidf = tfidf_vectorizer.transform(X_test) # Only transform the testing data (no fitting here)
+
+# Creating a RandomForestClassifier with 100 estimators (trees), specifying a random state for reproducibility
+rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Training the RandomForestClassifier on the transformed training data and corresponding labels
+rf_classifier.fit(X_train_tfidf, y_train)
+
+# Using the trained classifier to predict labels on the transformed test data
+y_pred = rf_classifier.predict(X_test_tfidf)
+
+# Calculating and printing the accuracy of the predictions compared to the true labels
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy of the model: {accuracy:.4f}")
+
+# Generating and printing a detailed classification report to evaluate precision, recall, and F1-score
+report = classification_report(y_test, y_pred)
+print(f"Classification Report:\n{report}")
+
+# Generating and printing the confusion matrix to understand the number of true positives, false positives, etc.
+conf_matrix = confusion_matrix(y_test, y_pred)
+print(f"Confusion Matrix:\n{conf_matrix}")
