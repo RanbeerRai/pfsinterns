@@ -31,3 +31,4 @@ y = cleaned_data['num']
 
 # Split data into training and testing sets
 X_train
+
